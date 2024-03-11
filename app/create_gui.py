@@ -9,6 +9,7 @@ class create_app():
         self.generator_function = generator_function
         self.point_size = point_size
         self.canvas_size = canvas_size
+        self.paused_ = False
     
     def setup_gui(self):
         # Create the main window
@@ -28,9 +29,17 @@ class create_app():
         start_button = ttk.Button(frame, text="Start", command=self.start_simulation)
         start_button.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E))
 
+        # Pause/Resume button
+        self.pause_button_ = ttk.Button(frame, text="Pause", command=self.toggle_pause)
+        self.pause_button_.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E))
+
         # Label for showing the result
         self.result_label_ = ttk.Label(self.root_, text="Pi Estimate:")
         self.result_label_.grid(row=2, column=0, sticky=(tk.W, tk.E))
+
+        # Label for showing the points counter
+        self.points_counter_label_ = ttk.Label(self.root_, text="Points: 0")
+        self.points_counter_label_.grid(row=4, column=0, sticky=(tk.W, tk.E))
 
         # Canvas for drawing the points
         self.drawing_canvas_ = tk.Canvas(self.root_, width=self.canvas_size,
@@ -40,30 +49,41 @@ class create_app():
                                         start=0, extent=-90, style=tk.ARC, outline='blue')
         self.drawing_canvas_.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
     
+    def toggle_pause(self):
+        self.paused_ = not self.paused_
+        self.pause_button_.config(text="Resume" if self.paused_ else "Pause")
+    
     def simulate_pi_partially(self, generator):
-        try:
-            point_info, inside_count, total_points = next(generator)
-            (x, y, inside) = point_info
-            pi_estimate = 4 * inside_count / total_points
-            color = 'red' if inside else 'green'
-            self.drawing_canvas_.create_oval(x * self.canvas_size,
-                                             y * self.canvas_size,
-                                             x * self.canvas_size + self.point_size,
-                                             y * self.canvas_size + self.point_size,
-                                             fill=color, outline=color)
-            self.result_label_.config(text=f"Pi Estimate: {pi_estimate:.10f}")
-            self.drawing_canvas_.after(1, self.simulate_pi_partially,
-                                       generator)
-        except StopIteration:
-            pass
+        if self.paused_:
+            # If paused, wait for a bit and then check again
+            self.drawing_canvas_.after(100, self.simulate_pi_partially, generator)
+        else:
+            try:
+                point_info, inside_count, total_points = next(generator)
+                (x, y, inside) = point_info
+                pi_estimate = 4 * inside_count / total_points
+                color = 'red' if inside else 'green'
+                self.drawing_canvas_.create_oval(x * self.canvas_size,
+                                                y * self.canvas_size,
+                                                x * self.canvas_size + self.point_size,
+                                                y * self.canvas_size + self.point_size,
+                                                fill=color, outline=color)
+                self.result_label_.config(text=f"Pi Estimate: {pi_estimate:.10f}")
+                self.points_counter_label_.config(text=f"Points: {total_points}")
+                self.drawing_canvas_.after(1, self.simulate_pi_partially,
+                                        generator)
+            except StopIteration:
+                pass
 
     def start_simulation(self):
-        n_samples = int(self.points_entry_.get())
-        generator = self.generator_function(n_samples)
         self.drawing_canvas_.delete('all')
         self.drawing_canvas_.create_arc(-self.canvas_size, -self.canvas_size,
                                         self.canvas_size, self.canvas_size,
                                         start=0, extent=-90, style=tk.ARC, outline='blue')
+        self.paused_ = False  # Reset pause state when simulation starts
+        self.pause_button_.config(text="Pause")  # Reset button text to "Pause"
+        n_samples = int(self.points_entry_.get())
+        generator = self.generator_function(n_samples)
         self.simulate_pi_partially(generator)
 
     def run(self):
