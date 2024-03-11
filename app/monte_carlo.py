@@ -2,8 +2,10 @@ import random
 import math
 from typing import Generator, Tuple
 
-def monte_carlo_pi(n_samples: int
-                   ) -> Generator[Tuple[Tuple[float, float, int], int, int], None, None]:
+def monte_carlo_pi_generator(n_samples: int
+                             ) -> Generator[Tuple[Tuple[float, float, int],
+                                                  int, int],
+                                            None, None]:
     inside_count = 0
     for i in range(1, n_samples):
         x, y = random.random(), random.random()
