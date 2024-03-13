@@ -1,15 +1,20 @@
 import tkinter as tk
 from tkinter import ttk
+from typing import Generator, Tuple
 
 class create_app():
     def __init__(self,
-                 generator_function,
+                 generator_function: Generator[Tuple[Tuple[float, float, int],
+                                                     int, int], None, None],
                  point_size: int = 3,
-                 canvas_size: int = 600,) -> None:
+                 canvas_size: int = 600,
+                 smoothing_window_size: int = 50) -> None:
         self.generator_function = generator_function
         self.point_size = point_size
         self.canvas_size = canvas_size
         self.paused_ = False
+        self.pi_values_ = []
+        self.smoothing_window_size = smoothing_window_size
     
     def setup_gui(self):
         # Create the main window
@@ -53,6 +58,14 @@ class create_app():
         self.paused_ = not self.paused_
         self.pause_button_.config(text="Resume" if self.paused_ else "Pause")
     
+    def smooth_pi_estimate(self, pi_estimate):
+        self.pi_values_.append(pi_estimate)
+        if len(self.pi_values_) > self.smoothing_window_size:
+            self.pi_values_.pop(0)
+        
+        smoothed_pi = sum(self.pi_values_) / len(self.pi_values_)
+        return smoothed_pi
+
     def simulate_pi_partially(self, generator):
         if self.paused_:
             # If paused, wait for a bit and then check again
@@ -62,13 +75,14 @@ class create_app():
                 point_info, inside_count, total_points = next(generator)
                 (x, y, inside) = point_info
                 pi_estimate = 4 * inside_count / total_points
+                smoothed_pi = self.smooth_pi_estimate(pi_estimate)
                 color = 'red' if inside else 'green'
                 self.drawing_canvas_.create_oval(x * self.canvas_size,
                                                 y * self.canvas_size,
                                                 x * self.canvas_size + self.point_size,
                                                 y * self.canvas_size + self.point_size,
                                                 fill=color, outline=color)
-                self.result_label_.config(text=f"Pi Estimate: {pi_estimate:.10f}")
+                self.result_label_.config(text=f"Pi Estimate: {smoothed_pi:.10f}")
                 self.points_counter_label_.config(text=f"Points: {total_points}")
                 self.drawing_canvas_.after(1, self.simulate_pi_partially,
                                         generator)
