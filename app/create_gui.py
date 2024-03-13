@@ -66,7 +66,9 @@ class create_app():
         smoothed_pi = sum(self.pi_values_) / len(self.pi_values_)
         return smoothed_pi
 
-    def simulate_pi_partially(self, generator):
+    def simulate_pi_partially(self,
+                              generator: Generator[Tuple[Tuple[float, float, int],
+                                                         int, int], None, None],):
         if self.paused_:
             # If paused, wait for a bit and then check again
             self.drawing_canvas_.after(100, self.simulate_pi_partially, generator)
